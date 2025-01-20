@@ -1,0 +1,16 @@
+{
+    "products": [
+        {
+            "id": "10",
+            "name": "Chicken Waffle",
+            "price": 13.3,
+            "category": "Waffle"
+        },
+        {
+            "id": "11",
+            "name": "Chicken Burger",
+            "price": 15.5,
+            "category": "Burger"
+        }
+    ]
+}

@@ -4,42 +4,47 @@ import (
 	"net/http"
 	"strconv"
 
-	"backend-challenge/internal/models"
+	"backend-challenge/internal/service"
+
 	"github.com/gin-gonic/gin"
 )
 
-// Sample data, which might come from a database later.
-var products = []models.Product{
-	{
-		ID:       "1",
-		Name:     "Chicken burger",
-		Price:    13.3,
-		Category: "Burger",
-	},
-	// TODO: Add more sample products later
+type ProductHandler struct {
+	productService *service.ProductService
 }
 
-func ListProducts(c *gin.Context) {
+func NewProductHandler() (*ProductHandler, error) {
+	ps, err := service.NewProductService()
+	if err != nil {
+		return nil, err
+	}
+	return &ProductHandler{productService: ps}, nil
+}
+
+func (h *ProductHandler) ListProducts(c *gin.Context) {
+	products := h.productService.GetProducts()
 	c.JSON(http.StatusOK, products)
 }
 
-func GetProduct(c *gin.Context) {
+func (h *ProductHandler) GetProduct(c *gin.Context) {
 	productID := c.Param("productId")
-	
-	// Convert string ID to int64 for validation
+
+	// Validate ID is a proper number
 	_, err := strconv.ParseInt(productID, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID supplied"})
 		return
 	}
 
-	// Find product by ID
-	for _, product := range products {
-		if product.ID == productID {
-			c.JSON(http.StatusOK, product)
-			return
-		}
+	product, found := h.productService.GetProductByID(productID)
+	if !found {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
+		return
 	}
 
-	c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
-} 
+	c.JSON(http.StatusOK, product)
+}
+
+func (h *ProductHandler) GetProductService() *service.ProductService {
+	return h.productService
+}
