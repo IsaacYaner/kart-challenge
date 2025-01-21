@@ -200,7 +200,7 @@ func (s *CouponService) IsValidCoupon(code string) bool {
 	return count > 1
 }
 
-func readCouponsFromFile(filename string) ([]string, error) {
+func (s *CouponService) readCouponsFromFile(filename string, checkSpace bool) ([]string, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err
@@ -209,13 +209,24 @@ func readCouponsFromFile(filename string) ([]string, error) {
 
 	var coupons []string
 	scanner := bufio.NewScanner(file)
+
 	for scanner.Scan() {
-		coupon := scanner.Text()
-		if coupon != "" {
-			coupons = append(coupons, coupon)
+		if line := scanner.Text(); line != "" {
+			if checkSpace {
+				if coupon := strings.Split(line, " ")[0]; coupon != "" {
+					coupons = append(coupons, coupon)
+				}
+			} else {
+				coupons = append(coupons, line)
+			}
 		}
 	}
-	return coupons, scanner.Err()
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return coupons, nil
 }
 
 func (s *CouponService) initializeCoupons() error {
@@ -232,13 +243,14 @@ func (s *CouponService) initializeCoupons() error {
 }
 
 func (s *CouponService) loadValidCoupons(filename string) error {
-	coupons, err := readCouponsFromFile(filename)
+	coupons, err := s.readCouponsFromFile(filename, true)
 	if err != nil {
 		return err
 	}
 
 	for _, coupon := range coupons {
 		s.insert(coupon, 0)
+		log.Printf("Coupon %s is loaded", coupon)
 	}
 	return nil
 }
