@@ -12,7 +12,6 @@ import (
 
 const (
 	SHARD_COUNT = 256 // Increase shard count to reduce lock contention
-	BUFFER_SIZE = 4 * 1024 * 1024
 )
 
 type CouponShard struct {
@@ -127,11 +126,9 @@ func (s *CouponService) processCouponFile(fileIndex uint8, filename string) erro
 	}
 	defer file.Close()
 
-	reader := bufio.NewReaderSize(file, BUFFER_SIZE)
-	scanner := bufio.NewScanner(reader)
-	scanner.Buffer(make([]byte, BUFFER_SIZE), BUFFER_SIZE)
-
+	scanner := bufio.NewScanner(file)
 	var processed int
+
 	for scanner.Scan() {
 		if coupon := scanner.Text(); coupon != "" {
 			s.insert(coupon, fileIndex)
