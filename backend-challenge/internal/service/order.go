@@ -10,18 +10,24 @@ import (
 
 type OrderService struct {
 	productService *ProductService
+	couponService  *CouponService
 	mu             sync.RWMutex
 	orders         map[string]models.Order
 }
 
-func NewOrderService(ps *ProductService) *OrderService {
+func NewOrderService(ps *ProductService, cs *CouponService) *OrderService {
 	return &OrderService{
 		productService: ps,
+		couponService:  cs,
 		orders:         make(map[string]models.Order),
 	}
 }
 
 func (s *OrderService) CreateOrder(req models.OrderRequest) (*models.Order, error) {
+	// Validate coupon code first
+	if req.CouponCode != "" && !s.couponService.IsValidCoupon(req.CouponCode) {
+		return nil, fmt.Errorf("invalid coupon code: %s", req.CouponCode)
+	}
 	// Validate all products exist
 	var products []models.Product
 	for _, item := range req.Items {

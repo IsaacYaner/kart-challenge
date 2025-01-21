@@ -14,8 +14,9 @@ type OrderHandler struct {
 }
 
 func NewOrderHandler(productService *service.ProductService) *OrderHandler {
+	couponService := service.NewCouponService()
 	return &OrderHandler{
-		orderService: service.NewOrderService(productService),
+		orderService: service.NewOrderService(productService, couponService),
 	}
 }
 
