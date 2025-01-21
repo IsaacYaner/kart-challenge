@@ -102,43 +102,15 @@ func (s *CouponService) generateValidCoupons() error {
 		wg.Add(1)
 		go func(idx uint8, fname string) {
 			defer wg.Done()
-
-			file, err := os.Open(fname)
-			if err != nil {
+			if err := s.processCouponFile(idx, fname); err != nil {
 				errorChan <- err
-				return
 			}
-			defer file.Close()
-
-			reader := bufio.NewReaderSize(file, BUFFER_SIZE)
-			scanner := bufio.NewScanner(reader)
-			scanner.Buffer(make([]byte, BUFFER_SIZE), BUFFER_SIZE)
-
-			var processed int
-			for scanner.Scan() {
-				if coupon := scanner.Text(); coupon != "" {
-					s.insert(coupon, idx)
-					processed++
-					if processed%1000000 == 0 {
-						log.Printf("Processed %d coupons from %s", processed, fname)
-					}
-				}
-			}
-
-			if err := scanner.Err(); err != nil {
-				log.Printf("Error scanning file %s: %v", fname, err)
-				errorChan <- err
-				return
-			}
-
-			log.Printf("Completed processing %d coupons from %s", processed, fname)
 		}(uint8(fileIndex), filename)
 	}
 
 	wg.Wait()
 	close(errorChan)
 
-	// Check for errors
 	for err := range errorChan {
 		if err != nil {
 			return errors.New("error processing coupon files")
@@ -146,6 +118,37 @@ func (s *CouponService) generateValidCoupons() error {
 	}
 
 	return s.writeValidCoupons()
+}
+
+func (s *CouponService) processCouponFile(fileIndex uint8, filename string) error {
+	file, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	reader := bufio.NewReaderSize(file, BUFFER_SIZE)
+	scanner := bufio.NewScanner(reader)
+	scanner.Buffer(make([]byte, BUFFER_SIZE), BUFFER_SIZE)
+
+	var processed int
+	for scanner.Scan() {
+		if coupon := scanner.Text(); coupon != "" {
+			s.insert(coupon, fileIndex)
+			processed++
+			if processed%1000000 == 0 {
+				log.Printf("Processed %d coupons from %s", processed, filename)
+			}
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Printf("Error scanning file %s: %v", filename, err)
+		return err
+	}
+
+	log.Printf("Completed processing %d coupons from %s", processed, filename)
+	return nil
 }
 
 func (s *CouponService) writeValidCoupons() error {
