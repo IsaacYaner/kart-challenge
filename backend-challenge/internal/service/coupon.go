@@ -197,7 +197,7 @@ func (s *CouponService) IsValidCoupon(code string) bool {
 	defer shard.mu.RUnlock()
 
 	count := shard.coupons[hash]
-	return count > 1
+	return count > 0
 }
 
 func (s *CouponService) readCouponsFromFile(filename string, checkSpace bool) ([]string, error) {
